@@ -39,7 +39,7 @@ func main() {
 	log.Println(Usuarios)
 	log.Println(Usuarios[0].Time)
 
-	bot, err := tgbotapi.NewBotAPI("6203302074:AAG3jGLhGZr8UnBWUUUCELPe2aqfrC4uj7k")
+	bot, err := tgbotapi.NewBotAPI("Token")
 	if err != nil {
 		log.Panic(err)
 	}
