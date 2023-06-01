@@ -6,29 +6,29 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type Usuario struct {
-	NomeUsuario  string `json:"NomeUsuario"`
-	PrimeiroNome string `json:"PrimeiroNome"`
-	UltimoNome   string `json:"UltimoNome"`
-	Time         string `json:"Time"`
+type User struct {
+	Username  string `json:"Username"`
+	Firstname string `json:"Firstname"`
+	Lastname  string `json:"Lastname"`
+	Team      string `json:"Team"`
 }
 
-func findUser(string) {
+/* func findUser(string) {
 	for _, v := range Usuarios {
 		if v.Key == "key1" {
 			// Found!
 		}
 	}
-}
+} */
 
 func main() {
 
-	Usuarios := make([]Usuario, 0)
-	Usuarios = append(Usuarios, Usuario{
-		NomeUsuario:  "Victor",
-		PrimeiroNome: "Victor",
-		UltimoNome:   "Monteiro",
-		Time:         "Fluminense",
+	Users := make([]User, 0)
+	Users = append(Users, User{
+		Username:  "Victor",
+		Firstname: "Victor",
+		Lastname:  "Monteiro",
+		Team:      "Fluminense",
 	})
 	/*Usuarios[0] = Usuario{
 		NomeUsuario:  "Rafa",
@@ -36,10 +36,10 @@ func main() {
 		UltimoNome:   "Monteiro",
 		Time:         "Fluminense",
 	} */
-	log.Println(Usuarios)
-	log.Println(Usuarios[0].Time)
+	log.Println(Users)
+	log.Println(Users[0].Team)
 
-	bot, err := tgbotapi.NewBotAPI("Token")
+	bot, err := tgbotapi.NewBotAPI("telegramToken")
 	if err != nil {
 		log.Panic(err)
 	}
