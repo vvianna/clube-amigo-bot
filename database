@@ -1,0 +1,93 @@
+package main
+
+# Database Connection
+dbUser = "clubeamigo"
+dbPassword = "gabi2000"
+dbIP = "192.168.15.162"
+dbPort = "3306"
+dbDatabase = "clubeamigo"
+
+
+type User struct {
+	ID        string `json:"ID"`
+	Username  string `json:"Username"`
+	Firstname string `json:"Firstname"`
+	Lastname  string `json:"Lastname"`
+	Team      string `json:"Team"`
+	ChatId    string `json:"ChatId"`
+}
+
+func NewUser(username, firstname, lastname, team, chat_id string) *User {
+	return &User{
+		ID:        uuid.NewString(),
+		Username:  username,
+		Firstname: firstname,
+		Lastname:  lastname,
+		Team:      team,
+		ChatId:    chat_id,
+	}
+}
+
+//db, err := sql.Open("mysql", os.Getenv("dbUser")+":"+os.Getenv("dbPassword")+"@tcp("+os.Getenv("dbIP")+":"+os.Getenv("dbPort")+")/"+os.Getenv("dbDatabase"))
+if err != nil {
+	panic(err)
+}
+//defer db.Close()
+
+//user := NewUser("victorvianna", "Victor", "Monteiro", "Fluminense", "123456")
+//err = insertUser(db, user)
+if err != nil {
+	panic(err)
+}
+
+//us, err := selectUser(db, user.ID)
+if err != nil {
+	panic(err)
+}
+//fmt.Println(us.ChatId)
+
+
+
+
+
+
+func insertUser(db *sql.DB, user *User) error {
+	stmt, err := db.Prepare("insert into cba_users(id, username, firstname, lastname, team, chat_id) values (?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(user.ID, user.Username, user.Firstname, user.Lastname, user.Team, user.ChatId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateUser(db *sql.DB, user *User) error {
+	stmt, err := db.Prepare("update cba_users set username = ?, firstname = ?, lastname = ?, team = ?, chat_id = ? where id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(user.Username, user.Firstname, user.Lastname, user.Team, user.ChatId, user.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func selectUser(db *sql.DB, id string) (*User, error) {
+	stmt, err := db.Prepare("select * from cba_users where id = ?")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var us User
+	err = stmt.QueryRow(id).Scan(&us.ID, &us.ChatId, &us.Firstname, &us.Lastname, &us.Team, &us.Username)
+	if err != nil {
+		return nil, err
+	}
+	return &us, nil
+}
