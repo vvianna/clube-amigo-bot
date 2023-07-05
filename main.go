@@ -1,45 +1,50 @@
 package main
 
 import (
+	"database/sql"
 	"log"
+	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
 type User struct {
+	ID        string `json:"ID"`
 	Username  string `json:"Username"`
 	Firstname string `json:"Firstname"`
 	Lastname  string `json:"Lastname"`
 	Team      string `json:"Team"`
+	ChatId    int64  `json:"ChatId"`
 }
 
-/* func findUser(string) {
-	for _, v := range Usuarios {
-		if v.Key == "key1" {
-			// Found!
-		}
+func NewUser(username, firstname, lastname, team string, chat_id int64) *User {
+	return &User{
+		ID:        uuid.NewString(),
+		Username:  username,
+		Firstname: firstname,
+		Lastname:  lastname,
+		Team:      team,
+		ChatId:    chat_id,
 	}
-} */
+}
 
 func main() {
 
-	Users := make([]User, 0)
-	Users = append(Users, User{
-		Username:  "Victor",
-		Firstname: "Victor",
-		Lastname:  "Monteiro",
-		Team:      "Fluminense",
-	})
-	/*Usuarios[0] = Usuario{
-		NomeUsuario:  "Rafa",
-		PrimeiroNome: "Rafael",
-		UltimoNome:   "Monteiro",
-		Time:         "Fluminense",
-	} */
-	log.Println(Users)
-	log.Println(Users[0].Team)
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	bot, err := tgbotapi.NewBotAPI("telegramToken")
+	db, err := sql.Open("mysql", os.Getenv("dbUser")+":"+os.Getenv("dbPassword")+"@tcp("+os.Getenv("dbIP")+":"+os.Getenv("dbPort")+")/"+os.Getenv("dbDatabase"))
+	if err != nil {
+		log.Fatal("Error opening databse connection")
+	}
+	defer db.Close()
+
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("telegramToken"))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -55,9 +60,32 @@ func main() {
 
 	for update := range updates {
 
-		if update.Message.IsCommand() {
+		if update.Message != nil {
+			log.Println("Message received...")
+			user := NewUser(update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName, "", update.Message.Chat.ID)
+			user, err := selectUser(db, user.ChatId)
+			if err != nil {
+				if err.Error() == "sql: no rows in result set" {
+					log.Println("ChatID not found on database, creating...")
+					user = NewUser(update.Message.From.UserName, update.Message.From.FirstName, update.Message.From.LastName, "", update.Message.Chat.ID)
+					err = insertUser(db, user)
+					if err != nil {
+						panic(err)
+					}
+					log.Println("Created succefull")
+				} else {
+					log.Println("Some database problem: " + err.Error())
+					panic(err)
+				}
 
-			//findUser()
+			} else {
+				log.Println("ChatID found")
+				log.Println(user)
+			}
+
+		}
+
+		if update.Message.IsCommand() {
 
 			switch commandReceived := update.Message.Command(); commandReceived {
 			case "start":
@@ -84,4 +112,45 @@ func main() {
 		}
 
 	}
+}
+
+func insertUser(db *sql.DB, user *User) error {
+	stmt, err := db.Prepare("insert into cba_users(id, username, firstname, lastname, team, chat_id) values (?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(user.ID, user.Username, user.Firstname, user.Lastname, user.Team, user.ChatId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateUser(db *sql.DB, user *User) error {
+	stmt, err := db.Prepare("update cba_users set username = ?, firstname = ?, lastname = ?, team = ?, chat_id = ? where id = ?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(user.Username, user.Firstname, user.Lastname, user.Team, user.ChatId, user.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func selectUser(db *sql.DB, chat_id int64) (*User, error) {
+	stmt, err := db.Prepare("select * from cba_users where chat_id = ?")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var us User
+	err = stmt.QueryRow(chat_id).Scan(&us.ID, &us.Username, &us.Firstname, &us.Lastname, &us.Team, &us.ChatId)
+	if err != nil {
+		return nil, err
+	}
+	return &us, nil
 }

@@ -1,5 +1,7 @@
 #Folders
 build
+resources
+staff
 
 #Files
 .env
